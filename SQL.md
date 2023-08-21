@@ -48,13 +48,7 @@ ALTER TABLE mytable
 ADD column DataType OptionalTableConstraint 
     DEFAULT default_value;
 ```
-eg: add a foreign key
-```
-ALTER TABLE 2ndtable
-ADD Constraint fk
-foreign key(primary_key)
-References 1sttable(primary_key)
-```
+
 
 Modify the column's DataType
 ```
@@ -181,28 +175,6 @@ SET column = value_or_expr,
     other_column = another_value_or_expr,…
 WHERE condition;
 ```
-UPDATE using JOIN
-```
-UPDATE A
-SET ProductName = B.Name,
-ProductSubCategoryID = B.ProductSubCategoryID
-FROM #ProductsSold2012 A
-      JOIN AdventureWorks2019.Production.Product B
-            ON A.ProductID = B.ProductID
-```
-UPDATE using WHEN
-```
-UPDATE #SalesOrders
-SET
-TaxFreightPercent = (TaxAmt+Freight)/TotalDue,
-OrderAmtBucket = 
-    CASE
-        WHEN TotalDue < 100 THEN 'Small'
-        WHEN TotalDue < 100 THEN 'Small'
-        ELSE 'Large'
-    END
-```
-
 ### ALTER VS UPDATE
 |  Alter | Update | 
 | ----------- | ----------- |
@@ -220,11 +192,8 @@ OrderAmtBucket =
 | DML | DDL | DDL | 
 | Only some(WHERE clause)rows deleted | ALL Rows,Indexes, privileges deleted | ALL Rows deleted | 
 | Slower than TRUNCATE | Quick but could lead to complications | Faster than DELETE |
-| Trigger fired | Trigger NOT fired | Trigger NOT fired | 
 | Temporary | Permanent | Permanent | 
-| Uses 'Undo' space | Do not use 'Undo' space | Uses 'Undo' space, but not as much as DELETE | 
 | Text | Destroys table structure and data | Removes record of table | 
-|It maintains a log to lock the row of the table before deleting it and hence it’s slow.|It doesn’t maintain a log and is faster|It doesn’t maintain a log and deletes the whole table at once and hence it’s fastest.|
 
 ## 4 SELECT
 The SELECT command is used to retrieve data from one or more tables or views. It allows you to specify the columns to be selected, apply filtering conditions, join tables, and perform aggregations.
@@ -280,235 +249,13 @@ FROM mytable
 |[]	|Represents any single character within the brackets	|h[oa]t finds hot and hat, but not hit|
 |^	|Represents any character not in the brackets|	h[^oa]t finds hit, but not hot and hat|
 |-	|Represents any single character within the specified range	|c[a-b]t finds cat and cbt|
-Concatinate fname + lname , 
-
-Coalesce return 1st non null value
-
-To clone
-```
-SELECT * INTO Students_copy
-FROM Students WHERE 1 = 2;
-```
-```
-create table clone_employee like employee;
-select * from clone_employee;
---to view db schema
-desc clone_employee;
-```
+.
 Determine nth highest slary
 ```
 SELECT salary FROM employee ORDER BY salary desc LIMIT n-1,1;
 ```
 ```
 SELECT salary FROM employee ORDER BY salary desc LIMIT 1, OFFSET 3;
-```
-ORDER BY value, LIMIT n-1 OFFSET n or use TOP n (can also find the 2nd by using TOP 2 + SELECT MIN())
-```
-SELECT IFNULL((SELECT DISTINCT Salary
-	             FROM Employee 
-				 ORDER BY Salary DESC 
-				 LIMIT 1,1),NULL) AS SecondHighestSalary
-```
-Calculate aggregated values first to find the max/min/most/earliest (in either subquery or CTE), and then select records with values equal to (or smaller than in this problem) the aggregated values.
-```
-SELECT DISTINCT MAX(salary) AS SecondHighestSalary
-  FROM Employee a
- WHERE Salary< (SELECT MAX(salary) FROM Employee b WHERE b.salary > a.salary)
-```
-Using window function (RANK, DENSE_RANK, ROW_NUMBER, MAX(), MIN()) to append ranks, and the select records with values equal to rank n. (use dense_rank if more than one employee has the maximum salary
-```
-WITH CTE AS
-			(SELECT Salary, RANK () OVER (ORDER BY Salary desc) AS RANK_desc
-			   FROM Employee)
-SELECT MAX(salary) AS SecondHighestSalary
-  FROM CTE
- WHERE RANK_desc = 2
-```
-(Apply to find the 2nd): SELECT MAX(b.val) FROM table a, table b WHERE a.val > b.val
-```
-SELECT
-   MAX(a.Salary) as SecondHighestSalary
-  FROM Employee a
-  JOIN Employee b
-    ON a.Salary < b.Salary
-```
-Nested query: SELECT val FROM table a WHERE n > (SELECT val FROM table b WHERE b.val > a.val). If using this to find the 2nd, need to combine the third way above (ORDER BY, LIMIT, OFFSET) to remove the 1st.
-```
-SELECT DISTINCT salary
-  FROM Employee a
- WHERE 2> (SELECT COUNT(DISTINCT salary) FROM Employee b WHERE b.salary > a.salary )
- ORDER BY 1 DESC
- LIMIT 2 OFFSET 1
-```
-```
-CREATE DATABASE NEW_DB;
-USE NEW_DB;
-INSERT INTO new_db.new_table (Base_Price, Checkout_Price) VALUES(10,2),(15,10),(19,10),(20,20),(30,29);
-select * from new_db.new_table;
-ALTER TABLE new_db.new_table 
-ADD COLUMN Discounts varchar(20); 
-ALTER TABLE new_db.new_table 
-MODIFY COLUMN Discounts INT;
-SET SQL_SAFE_UPDATES = 0;
-UPDATE  new_db.new_table 
-SET Discounts = Base_Price - Checkout_Price
-where Base_Price>0;
-```
-Numbers appearing at least three times consecutively
-```
-SELECT DISTINCT
-    l1.Num AS ConsecutiveNums
-FROM
-    Logs l1,
-    Logs l2,
-    Logs l3
-WHERE
-    l1.Id = l2.Id - 1
-    AND l2.Id = l3.Id - 1
-    AND l1.Num = l2.Num
-    AND l2.Num = l3.Num
-;
-```
-order by last 3 characters 
-```
-SELECT *FROM yourTableName ORDER BY RIGHT(yourColumnName,3) yourSortingOrder; 
-```
-Employees Earning More Than Their Managers
-```
-SELECT
-     a.NAME AS Employee
-FROM Employee AS a JOIN Employee AS b
-     ON a.ManagerId = b.Id
-     AND a.Salary > b.Salary
-;
-```
-```
-SELECT
-    a.Name AS 'Employee'
-FROM
-    Employee AS a,
-    Employee AS b
-WHERE
-    a.ManagerId = b.Id
-        AND a.Salary > b.Salary
-;
-```
-Duplicate Emails
-```
-select Email
-from Person
-group by Email
-having count(Email) > 1;
-```
-```
-select Email from
-(
-  select Email, count(Email) as num
-  from Person
-  group by Email
-) as statistic
-where num > 1
-;
-```
-Delete Duplicate Emails
-```
-DELETE p1 FROM Person p1,
-    Person p2
-WHERE
-    p1.Email = p2.Email AND p1.Id > p2.Id
-```
-Pivot the Occupation column in OCCUPATIONS so that each Name is sorted alphabetically and displayed underneath its corresponding Occupation. The output column headers should be Doctor, Professor, Singer, and Actor, respectively. 
-```
-select
-    Doctor,
-    Professor,
-    Singer,
-    Actor
-from (
-    select
-        NameOrder,
-        max(case Occupation when 'Doctor' then Name end) as Doctor,
-        max(case Occupation when 'Professor' then Name end) as Professor,
-        max(case Occupation when 'Singer' then Name end) as Singer,
-        max(case Occupation when 'Actor' then Name end) as Actor
-    from (
-            select
-                Occupation,
-                Name,
-                row_number() over(partition by Occupation order by Name ASC) as NameOrder
-            from Occupations
-         ) as NameLists
-    group by NameOrder
-    ) as Names
-```
-A median is defined as a number separating the higher half of a data set from the lower half. Query the median of the Northern Latitudes (LAT_N) from STATION and round your answer to  decimal places.
-```
-select round(lat_n,4) from(
-select row_number()over(order by lat_n asc) as rnk , lat_n from station) a
-where rnk = (select round(count(*)/2) from station)
-```
-You are given a table, Projects, containing three columns: Task_ID, Start_Date and End_Date. It is guaranteed that the difference between the End_Date and the Start_Date is equal to 1 day for each row in the table.
-If the End_Date of the tasks are consecutive, then they are part of the same project. Samantha is interested in finding the total number of different projects completed.
-
-Write a query to output the start and end dates of projects listed by the number of days it took to complete the project in ascending order. If there is more than one project that have the same number of completion days, then order by the start date of the project
-```
-SELECT START_DATE, MIN(END_DATE)
-FROM
-  (SELECT START_DATE
-   FROM PROJECTS
-   WHERE START_DATE NOT IN
-       (SELECT END_DATE
-        FROM PROJECTS)) A,
-  (SELECT END_DATE
-   FROM PROJECTS
-   WHERE END_DATE NOT IN
-       (SELECT START_DATE
-        FROM PROJECTS)) B
-WHERE START_DATE < END_DATE
-GROUP BY START_DATE
-ORDER BY (MIN(END_DATE) - START_DATE), START_DATE;
-```
-15 days of learning sql advanced HARD
-```
-SELECT SUBMISSION_DATE,
-(SELECT COUNT(DISTINCT HACKER_ID)  
- FROM SUBMISSIONS S2  
- WHERE S2.SUBMISSION_DATE = S1.SUBMISSION_DATE AND    
-(SELECT COUNT(DISTINCT S3.SUBMISSION_DATE) 
- FROM SUBMISSIONS S3
- WHERE S3.HACKER_ID = S2.HACKER_ID
-AND
-S3.SUBMISSION_DATE < S1.SUBMISSION_DATE) = DATEDIFF(S1.SUBMISSION_DATE , '2016-03-01')),
-(SELECT HACKER_ID FROM SUBMISSIONS S2 WHERE S2.SUBMISSION_DATE = S1.SUBMISSION_DATE 
-GROUP BY HACKER_ID ORDER BY COUNT(SUBMISSION_ID) DESC, HACKER_ID LIMIT 1) AS TMP,
-(SELECT NAME FROM HACKERS WHERE HACKER_ID = TMP)
-FROM
-(SELECT DISTINCT SUBMISSION_DATE FROM SUBMISSIONS) S1
-GROUP BY SUBMISSION_DATE;
-```
-ADVANCED SELECT, New Companies
-```
-SELECT COMPANY_CODE, FOUNDER,
-(SELECT COUNT(DISTINCT LEAD_MANAGER_CODE) FROM LEAD_MANAGER WHERE COMPANY_CODE = C.COMPANY_CODE),
-(SELECT COUNT(DISTINCT SENIOR_MANAGER_CODE) FROM SENIOR_MANAGER WHERE COMPANY_CODE = C.COMPANY_CODE),
-(SELECT COUNT(DISTINCT MANAGER_CODE) FROM MANAGER WHERE COMPANY_CODE = C.COMPANY_CODE),
-(SELECT COUNT(DISTINCT EMPLOYEE_CODE) FROM EMPLOYEE WHERE COMPANY_CODE = C.COMPANY_CODE)
-FROM COMPANY C
-ORDER BY COMPANY_CODE;
-```
-print pattern in sql by recurssion 
-```
-WITH RECURSIVE num_list AS (
- SELECT 1 AS num
- UNION ALL
- SELECT num + 1
- FROM num_list
- WHERE num < 20
-)
-SELECT
- REPEAT('* ', num) AS pattern
-FROM num_list
-ORDER BY num DESC;
 ```
 # SQL Functions
 |  Function | Description  |  
