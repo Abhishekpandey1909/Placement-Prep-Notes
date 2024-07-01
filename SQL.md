@@ -255,7 +255,7 @@ Determine nth highest slary
 SELECT salary FROM employee ORDER BY salary desc LIMIT n-1,1;
 ```
 ```
-SELECT salary FROM employee ORDER BY salary desc LIMIT 1, OFFSET 3;
+SELECT salary FROM employee ORDER BY salary desc LIMIT 1 OFFSET 3;
 ```
 # SQL Functions
 |  Function | Description  |  
